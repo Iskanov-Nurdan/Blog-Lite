@@ -1,0 +1,13 @@
+django>=5.0
+djangorestframework
+psycopg2-binary
+drf-spectacular
+
+gunicorn
+
+pytest
+pytest-django
+coverage
+
+ruff
+black
