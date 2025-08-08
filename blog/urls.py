@@ -6,5 +6,4 @@ router.register(r'posts', PostViewSet, basename='posts')
 router.register(r'subposts', SubPostViewSet, basename='subposts')
 router.register('categories', CategoryViewSet)
 
-
 urlpatterns = router.urls

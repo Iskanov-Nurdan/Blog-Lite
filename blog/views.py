@@ -1,3 +1,4 @@
+from django.db.models import F
 from django.shortcuts import render
 from rest_framework import viewsets
 from .models import Post, SubPost, Category
@@ -7,7 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
-# Create your views here.
+from rest_framework import status
 
 class SubPostViewSet(viewsets.ModelViewSet):
     queryset = SubPost.objects.all()
@@ -38,7 +39,6 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
         post = self.get_object()
@@ -49,13 +49,22 @@ class PostViewSet(viewsets.ModelViewSet):
         else:
             post.likes.add(user)
             return Response({'liked': True})
-        
+
     @action(detail=True, methods=['get'])
     def view(self, request, pk=None):
         post = self.get_object()
         Post.objects.filter(pk=post.pk).update(views_count=F('views_count') + 1)
         post.refresh_from_db()
         return Response({'views_count': post.views_count})
+
+    @action(detail=False, methods=['post'], url_path='bulk-create')
+    def bulk_create(self, request):
+        posts_data = request.data
+        serializer = PostSerializer(data=posts_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        posts = [Post(**{**item, 'author': request.user}) for item in serializer.validated_data]
+        Post.objects.bulk_create(posts)
+        return Response({'created': len(posts)}, status=status.HTTP_201_CREATED)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
