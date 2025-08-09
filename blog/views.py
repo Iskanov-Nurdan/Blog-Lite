@@ -27,7 +27,6 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
             return True
         return obj.author == request.user
 
-
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
@@ -38,6 +37,24 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.author != request.user:
+            return Response({'error': 'Вы не автор этого поста'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.author != request.user:
+            return Response({'error': 'Вы не автор этого поста'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.author != request.user:
+            return Response({'error': 'Вы не автор этого поста'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
@@ -65,7 +82,6 @@ class PostViewSet(viewsets.ModelViewSet):
         posts = [Post(**{**item, 'author': request.user}) for item in serializer.validated_data]
         Post.objects.bulk_create(posts)
         return Response({'created': len(posts)}, status=status.HTTP_201_CREATED)
-
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
